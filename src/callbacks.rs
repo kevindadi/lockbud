@@ -5,6 +5,7 @@ extern crate rustc_hir;
 
 use std::path::PathBuf;
 
+use crate::analysis::pointsto::AliasAnalysis;
 use crate::options::{CrateNameList, DetectorKind, Options};
 use log::{debug, warn};
 use rustc_driver::Compilation;
@@ -93,7 +94,7 @@ impl LockBudCallbacks {
             CrateNameList::Black(crates) if crates.contains(&crate_name) => return,
             _ => {}
         };
-        if tcx.sess.opts.debugging_opts.no_codegen || !tcx.sess.opts.output_types.should_codegen() {
+        if tcx.sess.opts.unstable_opts.no_codegen || !tcx.sess.opts.output_types.should_codegen() {
             return;
         }
         let cgus = tcx.collect_and_partition_mono_items(()).1;
@@ -112,27 +113,31 @@ impl LockBudCallbacks {
         let mut callgraph = CallGraph::new();
         let param_env = ParamEnv::reveal_all();
         callgraph.analyze(instances.clone(), tcx, param_env);
+        let mut alias_analysis = AliasAnalysis::new(tcx, &callgraph);
         match self.options.detector_kind {
             DetectorKind::Deadlock => {
                 let mut deadlock_detector = DeadlockDetector::new(tcx, param_env);
-                let reports = deadlock_detector.detect(&callgraph);
+                let reports = deadlock_detector.detect(&callgraph, &mut alias_analysis);
                 if !reports.is_empty() {
                     let j = serde_json::to_string_pretty(&reports).unwrap();
                     warn!("{}", j);
-                    report_stats(&crate_name, &reports);
+                    let stats = report_stats(&crate_name, &reports);
+                    warn!("{}", stats);
                 }
             }
         }
     }
 }
 
-fn report_stats(crate_name: &str, reports: &[Report]) {
+fn report_stats(crate_name: &str, reports: &[Report]) -> String {
     let (
         mut doublelock_probably,
         mut doublelock_possibly,
         mut conflictlock_probably,
         mut conflictlock_possibly,
-    ) = (0, 0, 0, 0);
+        mut condvar_deadlock_probably,
+        mut condvar_deadlock_possibly,
+    ) = (0, 0, 0, 0, 0, 0);
     for report in reports {
         match report {
             Report::DoubleLock(doublelock) => match doublelock.possibility.as_str() {
@@ -145,7 +150,24 @@ fn report_stats(crate_name: &str, reports: &[Report]) {
                 "Possibly" => conflictlock_possibly += 1,
                 _ => {}
             },
+            Report::CondvarDeadlock(condvar_deadlock) => {
+                match condvar_deadlock.possibility.as_str() {
+                    "Probably" => condvar_deadlock_probably += 1,
+                    "Possibly" => condvar_deadlock_possibly += 1,
+                    _ => {}
+                }
+            }
         }
     }
-    warn!("crate {} contains doublelock: {{ probably: {}, possibly: {} }}, conflictlock: {{ probably: {}, possibly: {} }}", crate_name, doublelock_probably, doublelock_possibly, conflictlock_probably, conflictlock_possibly);
+    format!("crate {} contains doublelock: {{ probably: {}, possibly: {} }}, conflictlock: {{ probably: {}, possibly: {} }}, condvar_deadlock: {{ probably: {}, possibly: {} }}", crate_name, doublelock_probably, doublelock_possibly, conflictlock_probably, conflictlock_possibly, condvar_deadlock_probably, condvar_deadlock_possibly)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_report_stats() {
+        assert_eq!(report_stats("dummy", &[]), format!("crate {} contains doublelock: {{ probably: {}, possibly: {} }}, conflictlock: {{ probably: {}, possibly: {} }}, condvar_deadlock: {{ probably: {}, possibly: {} }}", "dummy", 0, 0, 0, 0, 0, 0));
+    }
 }

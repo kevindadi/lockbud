@@ -33,7 +33,7 @@ fn make_options_parser<'help>() -> Command<'help> {
             Arg::new("kind")
                 .short('k')
                 .long("detector-kind")
-                .possible_values(&["deadlock"])
+                .possible_values(["deadlock"])
                 .default_values(&["deadlock"])
                 .help("The detector kind"),
         )
@@ -98,5 +98,77 @@ impl Options {
             detector_kind,
             crate_name_list,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_from_str_blacklist_ok() {
+        let options = Options::parse_from_str("-k deadlock -b -l cc,tokio_util,indicatif").unwrap();
+        assert!(matches!(options.detector_kind, DetectorKind::Deadlock));
+        assert!(
+            matches!(options.crate_name_list, CrateNameList::Black(v) if v == vec!["cc".to_owned(), "tokio_util".to_owned(), "indicatif".to_owned()])
+        );
+    }
+
+    #[test]
+    fn test_parse_from_str_whitelist_ok() {
+        let options = Options::parse_from_str("-k deadlock -l cc,tokio_util,indicatif").unwrap();
+        assert!(matches!(options.detector_kind, DetectorKind::Deadlock));
+        assert!(
+            matches!(options.crate_name_list, CrateNameList::White(v) if v == vec!["cc".to_owned(), "tokio_util".to_owned(), "indicatif".to_owned()])
+        );
+    }
+
+    #[test]
+    fn test_parse_from_str_err() {
+        let options = Options::parse_from_str("-k unknown -b -l cc,tokio_util,indicatif");
+        assert!(options.is_err());
+    }
+
+    #[test]
+    fn test_parse_from_args_blacklist_ok() {
+        let options = Options::parse_from_args(&[
+            "-k".to_owned(),
+            "deadlock".to_owned(),
+            "-b".to_owned(),
+            "-l".to_owned(),
+            "cc,tokio_util,indicatif".to_owned(),
+        ])
+        .unwrap();
+        assert!(matches!(options.detector_kind, DetectorKind::Deadlock));
+        assert!(
+            matches!(options.crate_name_list, CrateNameList::Black(v) if v == vec!["cc".to_owned(), "tokio_util".to_owned(), "indicatif".to_owned()])
+        );
+    }
+
+    #[test]
+    fn test_parse_from_args_whitelist_ok() {
+        let options = Options::parse_from_args(&[
+            "-k".to_owned(),
+            "deadlock".to_owned(),
+            "-l".to_owned(),
+            "cc,tokio_util,indicatif".to_owned(),
+        ])
+        .unwrap();
+        assert!(matches!(options.detector_kind, DetectorKind::Deadlock));
+        assert!(
+            matches!(options.crate_name_list, CrateNameList::White(v) if v == vec!["cc".to_owned(), "tokio_util".to_owned(), "indicatif".to_owned()])
+        );
+    }
+
+    #[test]
+    fn test_parse_from_args_err() {
+        let options = Options::parse_from_args(&[
+            "-k".to_owned(),
+            "unknown".to_owned(),
+            "-b".to_owned(),
+            "-l".to_owned(),
+            "cc,tokio_util,indicatif".to_owned(),
+        ]);
+        assert!(options.is_err());
     }
 }
