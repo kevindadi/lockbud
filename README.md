@@ -14,7 +14,7 @@ A deadlock Condvar detector is implemented along with the two deadlock detectors
 Ongoing work includes other concurrency bugs like atomicity violation and some memory bugs like use-after-free and invalid free. See branch uaf.
 
 ## Install
-Currently supports rustc 1.66.0-nightly (c97d02cdb 2022-10-05)
+Currently supports rustc 2023-04-11-nightly
 ```
 $ git clone https://github.com/BurtonQin/lockbud.git
 $ cd lockbud
@@ -105,7 +105,7 @@ It will print one conflictlock bug
 The output shows that there is possibly a conflictlock bug. The DeadlockDiagnosis is similar to doublelock bugs except that there are at least two diagnosis records. All the diagnosis records form a cycle, e.g. A list of records [(first_lock, second_lock), (second_lock', first_lock')] means that it is possible that first_lock is aquired and waits for second_lock in one thread, while second_lock' is aquired and waits for first_lock' in another thread, which incurs a conflictlock bug.
 
 `detect.sh` is mainly for development of the detector and brings more flexibility.
-You can modify `detect.sh` to use release vesion of lockbud to detect large and complex projects.
+You can modify `detect.sh` to use release version of lockbud to detect large and complex projects.
 
 For ease of use, you can also run cargo lockbud
 ```
@@ -125,6 +125,44 @@ The `-l` is followed by a list of crate names seperated by commas.
 ```
 $ cd YourProject; cargo clean; cargo lockbud -k deadlock -b -l cc,tokio_util,indicatif
 ```
+
+### Using by docker
+
+Current available docker image is `burtonqin/lockbud`[^1]
+
+```shell
+docker run --rm -it -v ./toys/inter/:/volume burtonqin/lockbud -k deadlock
+```
+
+lockbud will execute `cargo clean && cargo lockbud -k deadlock` in `/volume` directory.
+
+> **Note**  
+> It will compile your project in docker, so you need manual remove the target directory before your ready for working.
+
+### Using in CI
+
+```yaml
+name: Lockbud
+
+on: workflow_dispatch
+
+jobs:
+  test:
+    name: lockbud
+    runs-on: ubuntu-latest
+    container:
+      image: burtonqin/lockbud
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Generate code coverage
+        run: |
+          cargo lockbud -k deadlock
+```
+
+> **Note**  
+> Currently lockbud output in stdout
 
 ## How it works
 In Rust, a lock operation returns a lockguard. The lock will be unlocked when the lockguard is dropped.
@@ -175,3 +213,5 @@ Bugs detected and fixed (one PR may fix multiple bugs):
 
 ## License
 The lockbud Project is licensed under BSD-3.
+
+[^1]: https://hub.docker.com/r/burtonqin/lockbud
