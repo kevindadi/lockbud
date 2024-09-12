@@ -624,6 +624,26 @@ impl<'tcx> DeadlockDetector<'tcx> {
                 _ => {}
             }
         }
+
+        let mut lock_alias_relations = Vec::new();
+        for (id1, info1) in lockguards.iter() {
+            for (id2, info2) in lockguards.iter() {
+                if id1 != id2 {
+                    let alias_kind = alias_analysis.alias((*id1).into(), (*id2).into());
+                    lock_alias_relations.push((
+                        format!("{:?}", info1.span),
+                        format!("{:?}", info2.span),
+                        format!("{:?}", alias_kind),
+                    ));
+                }
+            }
+        }
+
+        // 将分析结果输出到日志
+        log::info!("Lock alias relations:");
+        for (lock1, lock2, relation) in lock_alias_relations {
+            log::info!("{} -> {}: {}", lock1, lock2, relation);
+        }
         // Detect conflictlock:
         // forall relation(a, b), relation(c, d): deadlock(b, c) and deadlock(d, a) => conflictlock((a, b), (c, d))
         // forall relation(a, b), relation(c, d), relation(e, f): deadlock(b, c) and deadlock(d, e) and deadlock(f, a) => conflictlock((a, b), (c, d), (e, f))

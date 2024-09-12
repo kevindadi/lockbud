@@ -24,8 +24,10 @@ impl Foo {
     fn std_mutex_1(&self) {
         let guard1 = self.mu1.lock().unwrap();
         match *guard1 {
-            1 => {},
-            _ => { self.std_mutex_2(); },
+            1 => {}
+            _ => {
+                self.std_mutex_2();
+            }
         };
     }
 
@@ -35,15 +37,23 @@ impl Foo {
 
     fn std_rwlock_read_1(&self) {
         match *self.rw1.read().unwrap() {
-            1 => { self.std_rwlock_write_2(); },
-            _ => { self.std_rwlock_read_2(); },
+            1 => {
+                self.std_rwlock_write_2();
+            }
+            _ => {
+                self.std_rwlock_read_2();
+            }
         };
     }
 
     fn std_rwlock_write_1(&self) {
         match *self.rw1.write().unwrap() {
-            1 => { self.std_rwlock_write_2(); },
-            _ => { self.std_rwlock_read_2(); },
+            1 => {
+                self.std_rwlock_write_2();
+            }
+            _ => {
+                self.std_rwlock_read_2();
+            }
         };
     }
 
@@ -55,75 +65,75 @@ impl Foo {
         *self.rw1.write().unwrap() += 1;
     }
 
-    fn parking_lot_mutex_1(&self) {
-        match *self.mu2.lock() {
-            1 => {},
-            _ => { self.parking_lot_mutex_2(); },
-        };
-    }
+    // fn parking_lot_mutex_1(&self) {
+    //     match *self.mu2.lock() {
+    //         1 => {},
+    //         _ => { self.parking_lot_mutex_2(); },
+    //     };
+    // }
 
-    fn parking_lot_mutex_2(&self) {
-        *self.mu2.lock() += 1;
-    }
+    // fn parking_lot_mutex_2(&self) {
+    //     *self.mu2.lock() += 1;
+    // }
 
-    fn parking_lot_rwlock_read_1(&self) {
-        match *self.rw2.read() {
-            1 => { self.parking_lot_rwlock_write_2(); },
-            _ => { self.parking_lot_rwlock_read_2(); },
-        };
-    }
+    // fn parking_lot_rwlock_read_1(&self) {
+    //     match *self.rw2.read() {
+    //         1 => { self.parking_lot_rwlock_write_2(); },
+    //         _ => { self.parking_lot_rwlock_read_2(); },
+    //     };
+    // }
 
-    fn parking_lot_rwlock_write_1(&self) {
-        match *self.rw2.write() {
-            1 => { self.parking_lot_rwlock_write_2(); },
-            _ => { self.parking_lot_rwlock_read_2(); },
-        };
-    }
+    // fn parking_lot_rwlock_write_1(&self) {
+    //     match *self.rw2.write() {
+    //         1 => { self.parking_lot_rwlock_write_2(); },
+    //         _ => { self.parking_lot_rwlock_read_2(); },
+    //     };
+    // }
 
-    fn parking_lot_rwlock_read_2(&self) {
-        let _ = *self.rw2.read();
-    }
+    // fn parking_lot_rwlock_read_2(&self) {
+    //     let _ = *self.rw2.read();
+    // }
 
-    fn parking_lot_rwlock_write_2(&self) {
-        *self.rw2.write() += 1;
-    }
+    // fn parking_lot_rwlock_write_2(&self) {
+    //     *self.rw2.write() += 1;
+    // }
 
-    fn spin_mutex_1(&self) {
-        match *self.mu3.lock() {
-            1 => { self.recur() },
-            _ => { self.spin_mutex_2(); },
-        };
-    }
+    // fn spin_mutex_1(&self) {
+    //     match *self.mu3.lock() {
+    //         1 => { self.recur() },
+    //         _ => { self.spin_mutex_2(); },
+    //     };
+    // }
 
-    fn recur(&self) {
-        self.spin_mutex_1();
-    }
+    // fn recur(&self) {
+    //     self.spin_mutex_1();
+    // }
 
-    fn spin_mutex_2(&self) {
-        *self.mu3.lock() += 1;
-    }
+    // fn spin_mutex_2(&self) {
+    //     *self.mu3.lock() += 1;
+    // }
 
-    fn spin_rwlock_read_1(&self) {
-        match *self.rw3.read() {
-            1 => { self.spin_rwlock_write_2(); },
-            _ => { self.spin_rwlock_read_2(); },
-        }
-    }
+    // fn spin_rwlock_read_1(&self) {
+    //     match *self.rw3.read() {
+    //         1 => { self.spin_rwlock_write_2(); },
+    //         _ => { self.spin_rwlock_read_2(); },
+    //     }
+    // }
 
-    fn spin_rwlock_write_1(&self) {
-        match *self.rw3.write() {
-            1 => { self.spin_rwlock_write_2(); },
-            _ => { self.spin_rwlock_read_2(); },
-        };
-    }
+    // fn spin_rwlock_write_1(&self) {
+    //     match *self.rw3.write() {
+    //         1 => { self.spin_rwlock_write_2(); },
+    //         _ => { self.spin_rwlock_read_2(); },
+    //     };
+    // }
 
-    fn spin_rwlock_read_2(&self) {
-        let _ = *self.rw3.read();
-    }
+    // fn spin_rwlock_read_2(&self) {
+    //     let _ = *self.rw3.read();
+    // }
 
-    fn spin_rwlock_write_2(&self) {
-        *self.rw3.write() += 1;
-    }
+    // fn spin_rwlock_write_2(&self) {
+    //     *self.rw3.write() += 1;
+    // }
 }
 
 fn main() {
@@ -132,17 +142,17 @@ fn main() {
     foo1.std_mutex_2();
     foo1.std_rwlock_read_1();
     foo1.std_rwlock_write_1();
-    foo1.parking_lot_mutex_1();
-    foo1.parking_lot_mutex_2();
-    foo1.parking_lot_rwlock_read_1();
-    foo1.parking_lot_rwlock_read_2();
-    foo1.parking_lot_rwlock_write_1();
-    foo1.parking_lot_rwlock_write_2();
-    foo1.spin_mutex_1();
-    foo1.spin_mutex_2();
-    foo1.recur();
-    foo1.spin_rwlock_read_1();
-    foo1.spin_rwlock_read_2();
-    foo1.spin_rwlock_write_1();
-    foo1.spin_rwlock_write_2();
+    // foo1.parking_lot_mutex_1();
+    // foo1.parking_lot_mutex_2();
+    // foo1.parking_lot_rwlock_read_1();
+    // foo1.parking_lot_rwlock_read_2();
+    // foo1.parking_lot_rwlock_write_1();
+    // foo1.parking_lot_rwlock_write_2();
+    // foo1.spin_mutex_1();
+    // foo1.spin_mutex_2();
+    // foo1.recur();
+    // foo1.spin_rwlock_read_1();
+    // foo1.spin_rwlock_read_2();
+    // foo1.spin_rwlock_write_1();
+    // foo1.spin_rwlock_write_2();
 }
